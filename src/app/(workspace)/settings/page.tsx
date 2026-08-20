@@ -14,11 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/providers/auth-provider";
 import { api } from "@/lib/api-client";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function ProfileSettingsPage() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const { user, refetchUser } = useAuth();
 
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -31,7 +29,7 @@ export default function ProfileSettingsPage() {
   if (!user) return null;
 
   async function refreshProfile() {
-    await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    await refetchUser();
   }
 
   function handleStartEditName() {
@@ -77,9 +75,6 @@ export default function ProfileSettingsPage() {
       <h1 className="mb-6 text-3xl font-semibold">Profile</h1>
 
       <div className="rounded-lg border border-border bg-background">
-        {/* FIX (#9): profile picture row now opens a view/change modal,
-            works identically for guest and logged-in users (no isGuest
-            check gates this). */}
         <div className="flex items-center justify-between p-4">
           <span className="text-sm">Profile picture</span>
           <button
@@ -106,9 +101,6 @@ export default function ProfileSettingsPage() {
         </div>
         <Separator />
 
-        {/* FIX (#9): name edit now uses a pencil-to-edit, checkmark-to-save
-            flow instead of a permanently-editable input, and actually
-            persists via PATCH /users/:id. */}
         <div className="flex items-center justify-between p-4">
           <span className="text-sm">Full name</span>
           {editingName ? (
@@ -181,7 +173,6 @@ export default function ProfileSettingsPage() {
         </Button>
       </div>
 
-      {/* View/change avatar modal */}
       <Dialog open={avatarModalOpen} onOpenChange={setAvatarModalOpen}>
         <DialogContent className="sm:max-w-xs">
           <DialogHeader>

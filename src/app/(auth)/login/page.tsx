@@ -4,6 +4,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
 import { useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,12 +33,53 @@ export default function LoginPage() {
     }
   }
 
-  async function handleGoogle() {
+  async function completeGoogleLogin(idToken: string) {
+    setIsLoading(true);
     setError(null);
 
-    // Keep your existing Google authentication implementation here.
-    // The visual button below now exactly matches the submitted HTML.
-    setError("Google login integration needs to be connected to this button.");
+    try {
+      await loginGoogle(idToken);
+      router.push("/tasks");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Google login failed");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleGoogle() {
+    setError(null);
+
+    if (typeof window === "undefined" || !window.google?.accounts?.id) {
+      setError("Google Sign-In hasn't loaded yet. Please try again in a moment.");
+      return;
+    }
+
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId || clientId === "mock-client-id") {
+      setError("Google login isn't configured (missing NEXT_PUBLIC_GOOGLE_CLIENT_ID).");
+      return;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: (response: { credential?: string }) => {
+        if (!response.credential) {
+          setError("Google did not return a credential. Please try again.");
+          return;
+        }
+        completeGoogleLogin(response.credential);
+      },
+    });
+
+    window.google.accounts.id.prompt((notification: any) => {
+      if (
+        notification.isNotDisplayed?.() ||
+        notification.isSkippedMoment?.()
+      ) {
+        setError("Google sign-in was dismissed or blocked. Please try again.");
+      }
+    });
   }
 
   return (
@@ -126,7 +174,7 @@ export default function LoginPage() {
                 />
               </svg>
 
-              Login with Google
+              {isLoading ? "Loading..." : "Login with Google"}
             </button>
           </div>
         </div>

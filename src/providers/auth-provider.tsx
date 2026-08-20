@@ -5,11 +5,12 @@ import { api, setToken } from "@/lib/api-client";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
-  user: any; // will be the full profile from /auth/me
+  user: any;
   isLoading: boolean;
   loginGoogle: (idToken: string) => Promise<void>;
   loginGuest: () => Promise<void>;
   logout: () => Promise<void>;
+  refetchUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -32,7 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Attempt silent refresh on mount
     api.post("/auth/refresh")
       .then(async (res) => {
         setToken(res.data.accessToken);
@@ -73,8 +73,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const refetchUser = async () => {
+    await fetchProfile();
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, isLoading, loginGoogle, loginGuest, logout }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, user, isLoading, loginGoogle, loginGuest, logout, refetchUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
