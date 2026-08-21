@@ -21,7 +21,7 @@ declare global {
           }) => void;
 
           prompt: (
-            momentListener?: (notification: {
+            listener?: (notification: {
               isNotDisplayed?: () => boolean;
               isSkippedMoment?: () => boolean;
               isDismissedMoment?: () => boolean;
@@ -47,7 +47,7 @@ export default function LoginPage() {
   const googleInitialized = useRef(false);
 
   /**
-   * Complete login after Google gives us an ID token.
+   * Complete Google login after Google returns the ID token.
    */
   const completeGoogleLogin = useCallback(
     async (idToken: string) => {
@@ -61,7 +61,7 @@ export default function LoginPage() {
         setError(
           err instanceof Error
             ? err.message
-            : "Google login failed."
+            : "Google login failed"
         );
       } finally {
         setIsLoading(false);
@@ -71,19 +71,12 @@ export default function LoginPage() {
   );
 
   /**
-   * Initialize Google Identity Services exactly once.
+   * Initialize Google exactly once.
+   *
+   * IMPORTANT:
+   * This is NOT inside handleGoogle().
    */
   const initializeGoogle = useCallback(() => {
-    const clientId =
-      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
-    if (!clientId) {
-      setError(
-        "Google login isn't configured. NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing."
-      );
-      return;
-    }
-
     if (googleInitialized.current) {
       return;
     }
@@ -92,14 +85,21 @@ export default function LoginPage() {
       return;
     }
 
+    const clientId =
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+    if (!clientId || clientId === "mock-client-id") {
+      setError(
+        "Google login isn't configured. NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing."
+      );
+      return;
+    }
+
     googleInitialized.current = true;
 
     window.google.accounts.id.initialize({
       client_id: clientId,
 
-      /**
-       * Google returns the ID token here.
-       */
       callback: (response) => {
         if (!response.credential) {
           setIsLoading(false);
@@ -116,8 +116,8 @@ export default function LoginPage() {
 
       cancel_on_tap_outside: false,
 
-      /**
-       * Allow current Google/FedCM behavior.
+      /*
+       * Keep the current FedCM-enabled approach.
        */
       use_fedcm_for_prompt: true,
     });
@@ -129,27 +129,11 @@ export default function LoginPage() {
    * Load Google Identity Services once.
    */
   useEffect(() => {
-    const clientId =
-      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
-    if (!clientId) {
-      setError(
-        "Google login isn't configured. NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing."
-      );
-      return;
-    }
-
-    /**
-     * GIS is already available.
-     */
     if (window.google?.accounts?.id) {
       initializeGoogle();
       return;
     }
 
-    /**
-     * Check if another component already added the script.
-     */
     const existingScript = document.querySelector(
       'script[src="https://accounts.google.com/gsi/client"]'
     ) as HTMLScriptElement | null;
@@ -159,7 +143,10 @@ export default function LoginPage() {
         initializeGoogle();
       };
 
-      existingScript.addEventListener("load", handleLoad);
+      existingScript.addEventListener(
+        "load",
+        handleLoad
+      );
 
       return () => {
         existingScript.removeEventListener(
@@ -169,9 +156,6 @@ export default function LoginPage() {
       };
     }
 
-    /**
-     * Add Google GIS script.
-     */
     const script = document.createElement("script");
 
     script.src =
@@ -186,7 +170,7 @@ export default function LoginPage() {
 
     script.onerror = () => {
       setError(
-        "Google Sign-In could not be loaded. Please check your internet connection and try again."
+        "Google Sign-In could not be loaded. Please check your internet connection."
       );
     };
 
@@ -211,7 +195,7 @@ export default function LoginPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Guest login failed."
+          : "Guest login failed"
       );
     } finally {
       setIsLoading(false);
@@ -219,12 +203,10 @@ export default function LoginPage() {
   }
 
   /**
-   * Custom Google button.
+   * Your custom Google button.
    *
-   * IMPORTANT:
-   * We do NOT initialize Google here.
-   *
-   * Google was initialized once in useEffect().
+   * initialize() has already happened.
+   * This only starts the Google prompt.
    */
   function handleGoogle() {
     if (isLoading) {
@@ -249,20 +231,11 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    /**
-     * Start Google authentication.
-     *
-     * We intentionally do NOT call initialize() here.
-     */
     window.google.accounts.id.prompt((notification) => {
-      /**
-       * These are informational states.
+      /*
+       * These are browser/Google prompt states.
        *
-       * Do not display the old:
-       *
-       * "Google sign-in was dismissed or blocked..."
-       *
-       * message here.
+       * Do NOT treat them as a login API error.
        */
       if (
         notification.isNotDisplayed?.() ||
@@ -325,7 +298,6 @@ export default function LoginPage() {
             Enter your email below to login to your account.
           </p>
 
-          {/* Error */}
           {error && (
             <div
               role="alert"
