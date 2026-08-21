@@ -127,18 +127,18 @@ export default function ProjectDetailPage() {
           <span>/</span>
           <span className="text-foreground font-medium">{project.name}</span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col-reverse md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold">{project.name}</h1>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
+            <h1 className="text-xl md:text-2xl font-semibold">{project.name}</h1>
+            <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5 shrink-0">
                 <PriorityBadge priority={project.priority} />
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 shrink-0">
                 <User className="h-3.5 w-3.5" />
                 {project.lead?.name || "Unassigned"}
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 shrink-0">
                 <CalendarDays className="h-3.5 w-3.5" />
                 {formattedDate}
               </span>
@@ -146,8 +146,8 @@ export default function ProjectDetailPage() {
           </div>
 
           {/* Members section */}
-          <div className="flex items-center gap-2">
-            <div className="flex -space-x-2">
+          <div className="flex items-center gap-2 self-start md:self-auto w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+            <div className="flex -space-x-2 shrink-0">
               {currentMembers.map((member: Member) => (
                 <div key={member.id} className="relative group">
                   <Avatar className="h-8 w-8 border-2 border-background">
@@ -158,7 +158,7 @@ export default function ProjectDetailPage() {
                   {isOwner && (
                     <button
                       onClick={() => handleRemoveMember(member.id)}
-                      className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 z-10"
                     >
                       <X className="h-2.5 w-2.5" />
                     </button>
@@ -169,7 +169,7 @@ export default function ProjectDetailPage() {
             {isOwner && (
               <Popover open={isMemberPopoverOpen} onOpenChange={setIsMemberPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 gap-1">
+                  <Button variant="outline" size="sm" className="h-8 gap-1 shrink-0">
                     <Plus className="h-3.5 w-3.5" />
                     Add member
                   </Button>

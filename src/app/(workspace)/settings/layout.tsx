@@ -23,9 +23,9 @@ export default function SettingsLayout({
   const activeBg = isDark ? "#171717" : "#FFFFFF";
 
   return (
-    <div className="flex flex-1">
+    <div className="flex flex-col md:flex-row flex-1 min-h-screen">
       <div
-        className="w-64 shrink-0 border-r p-4"
+        className="w-full md:w-64 shrink-0 border-b md:border-b-0 md:border-r p-4 overflow-x-auto"
         style={{ backgroundColor: sidebarBg, borderColor: sidebarBorder, color: sidebarText }}
       >
         <Link
@@ -38,43 +38,43 @@ export default function SettingsLayout({
         </Link>
 
         <div
-          className="mb-2 flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm"
+          className="mb-4 md:mb-2 flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm"
           style={{ borderColor: sidebarBorder, color: isDark ? "#A3A3A3" : "#737373" }}
         >
           <Search className="h-4 w-4" />
-          Search
+          <span>Search</span>
         </div>
 
-        <nav className="flex flex-col gap-0.5">
+        <nav className="flex flex-row md:flex-col gap-2 md:gap-0.5">
           <Link
             href="/settings"
-            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm"
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm whitespace-nowrap"
             style={{
               backgroundColor: isProfileActive ? activeBg : "transparent",
               color: sidebarText,
             }}
           >
-            <User className="h-4 w-4" />
+            <User className="h-4 w-4 shrink-0" />
             Profile
           </Link>
 
           <ThemeDropdown side="right" align="start">
             <button
-              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm hover:opacity-70"
+              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm hover:opacity-70 whitespace-nowrap"
               style={{ color: sidebarText }}
             >
-              {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              {isDark ? <Moon className="h-4 w-4 shrink-0" /> : <Sun className="h-4 w-4 shrink-0" />}
               Theme
             </button>
           </ThemeDropdown>
 
           <ColorModeDropdown side="right" align="start">
             <button
-              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm hover:opacity-70"
+              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm hover:opacity-70 whitespace-nowrap"
               style={{ color: sidebarText }}
             >
               <span
-                className="h-4 w-4 rounded-sm"
+                className="h-4 w-4 rounded-sm shrink-0"
                 style={{
                   backgroundColor: COLOR_MODES.find((c) => c.id === colorMode)?.hex,
                 }}
@@ -85,7 +85,7 @@ export default function SettingsLayout({
         </nav>
       </div>
 
-      <div className="flex flex-1 justify-center overflow-y-auto pt-32">
+      <div className="flex flex-1 justify-center overflow-y-auto pt-8 md:pt-32 px-4 md:px-8 pb-16">
         {children}
       </div>
     </div>

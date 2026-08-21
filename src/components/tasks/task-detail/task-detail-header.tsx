@@ -81,9 +81,9 @@ export function TaskDetailHeader({
   }
 
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex-1">
-        <h1 className="text-4xl font-semibold tracking-tight">{title}</h1>
+    <div className="flex flex-col-reverse md:flex-row items-start justify-between gap-4">
+      <div className="flex-1 w-full min-w-0">
+        <h1 className="text-2xl md:text-4xl font-semibold tracking-tight">{title}</h1>
         {editingDescription ? (
           <textarea
             value={descriptionDraft}
@@ -95,7 +95,7 @@ export function TaskDetailHeader({
           />
         ) : (
           <p
-            className="mt-1.5 text-sm text-muted-foreground leading-relaxed cursor-pointer hover:bg-accent/20 p-1 rounded transition-colors"
+            className="mt-1.5 text-sm text-muted-foreground leading-relaxed cursor-pointer hover:bg-accent/20 p-1 rounded transition-colors break-words"
             onClick={() => {
               setDescriptionDraft(description || "");
               setEditingDescription(true);
@@ -118,11 +118,11 @@ export function TaskDetailHeader({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
         <Button
           variant="outline"
           size="icon"
-          className={`h-9 w-9 ${isLocked ? "text-amber-600 border-amber-200 bg-amber-50" : ""}`}
+          className={`h-9 w-9 shrink-0 ${isLocked ? "text-amber-600 border-amber-200 bg-amber-50" : ""}`}
           onClick={onToggleLock}
           title={isLocked ? "Unlock task" : "Lock task"}
         >
@@ -134,7 +134,7 @@ export function TaskDetailHeader({
             <Button
               variant="outline"
               size="sm"
-              className={`h-9 gap-1.5 px-3 ${isWatching ? "text-blue-600 border-blue-200 bg-blue-50" : ""}`}
+              className={`h-9 gap-1.5 px-3 shrink-0 ${isWatching ? "text-blue-600 border-blue-200 bg-blue-50" : ""}`}
               title="View watchers"
             >
               <Eye className="h-4 w-4" />
@@ -167,7 +167,7 @@ export function TaskDetailHeader({
         <Button
           variant="outline"
           size="icon"
-          className="h-9 w-9"
+          className="h-9 w-9 shrink-0"
           onClick={handleCopy}
           title="Copy link"
         >
@@ -176,7 +176,7 @@ export function TaskDetailHeader({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9">
+            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -193,12 +193,12 @@ export function TaskDetailHeader({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="h-5 w-px bg-border mx-1"></div>
+        <div className="h-5 w-px bg-border mx-1 shrink-0"></div>
 
         <Button
           variant="outline"
           size="icon"
-          className="h-9 w-9"
+          className="h-9 w-9 shrink-0"
           onClick={onToggleRightPanel}
           title="Toggle side panel"
         >

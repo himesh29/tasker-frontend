@@ -72,7 +72,7 @@ export default function ProfileSettingsPage() {
 
   return (
     <div className="w-full max-w-3xl">
-      <h1 className="mb-6 text-3xl font-semibold">Profile</h1>
+      <h1 className="mb-6 text-2xl md:text-3xl font-semibold">Profile</h1>
 
       <div className="rounded-lg border border-border bg-background">
         <div className="flex items-center justify-between p-4">
@@ -90,46 +90,46 @@ export default function ProfileSettingsPage() {
         </div>
         <Separator />
 
-        <div className="flex items-center justify-between p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-2 sm:gap-0">
           <span className="text-sm">Email</span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+            <span className="text-sm text-muted-foreground truncate w-full sm:w-auto text-left sm:text-right">
               {user.email}
             </span>
-            <Pencil className="h-3.5 w-3.5 text-foreground" />
+            <Pencil className="h-3.5 w-3.5 text-foreground shrink-0" />
           </div>
         </div>
         <Separator />
 
-        <div className="flex items-center justify-between p-4">
-          <span className="text-sm">Full name</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-2 sm:gap-0">
+          <span className="text-sm shrink-0">Full name</span>
           {editingName ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Input
                 value={nameDraft}
                 onChange={(e) => setNameDraft(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
-                className="w-48"
+                className="w-full sm:w-48"
                 autoFocus
               />
               <button
                 onClick={handleSaveName}
                 disabled={savingName}
                 title="Save"
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent outline-none disabled:opacity-50"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-foreground hover:bg-accent outline-none disabled:opacity-50"
               >
                 <Check className="h-3.5 w-3.5" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground w-48 text-right truncate">
+            <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+              <span className="text-sm text-muted-foreground truncate w-full sm:w-48 text-left sm:text-right">
                 {user.name}
               </span>
               <button
                 onClick={handleStartEditName}
                 title="Edit name"
-                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent outline-none"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent outline-none"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -138,36 +138,36 @@ export default function ProfileSettingsPage() {
         </div>
         <Separator />
 
-        <div className="flex items-center justify-between p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-2 sm:gap-0">
           <div>
             <p className="text-sm">Title</p>
             <p className="text-xs text-muted-foreground">
               Your job title or role
             </p>
           </div>
-          <Input placeholder="Designer" className="w-48 bg-muted/50" />
+          <Input placeholder="Designer" className="w-full sm:w-48 bg-muted/50" />
         </div>
         <Separator />
 
-        <div className="flex items-center justify-between p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-2 sm:gap-0">
           <div>
             <p className="text-sm">Username</p>
             <p className="text-xs text-muted-foreground">
               One word, like a nickname or first name
             </p>
           </div>
-          <Input placeholder="Dexuser" className="w-48 bg-muted/50" />
+          <Input placeholder="Dexuser" className="w-full sm:w-48 bg-muted/50" />
         </div>
       </div>
 
       <h2 className="mb-2 mt-16 text-sm font-medium">Workspace access</h2>
-      <div className="flex items-center justify-between rounded-lg border border-border bg-background p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-border bg-background p-4">
         <span className="text-sm text-muted-foreground">
           Remove yourself from the workspace
         </span>
         <Button
           variant="destructive"
-          className="bg-red-50 text-red-600 hover:bg-red-100"
+          className="bg-red-50 text-red-600 hover:bg-red-100 w-full sm:w-auto"
         >
           Leave Workspace
         </Button>
