@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
+  baseURL: '/api', // <-- now relative, goes through our proxy
   withCredentials: true,
 });
 
@@ -33,11 +33,7 @@ api.interceptors.response.use(
     if (!refreshPromise) {
       refreshPromise = (async () => {
         try {
-          const res = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/auth/refresh`,
-            {},
-            { withCredentials: true }
-          );
+          const res = await api.post('/auth/refresh', {});
           const newToken = res.data.accessToken;
           setToken(newToken);
           return newToken;
