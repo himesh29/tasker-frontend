@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pyramid Frontend
 
-## Getting Started
+A modern Next.js 15 application for task and project management, featuring Google OAuth and guest authentication.
 
-First, run the development server:
+## Authentication Flow
+
+The frontend relies on **httpOnly refresh tokens** stored as cookies on the frontend domain. The login flow:
+
+1. User logs in via Google or Guest → the Next.js API route (`/api/auth/[...slug]`) forwards credentials to the backend.
+2. Backend returns `accessToken` and `refreshToken` in the JSON body.
+3. The API route sets a secure, `httpOnly` `refresh_token` cookie on the frontend domain (conditional `secure` flag for local HTTP).
+4. The access token is stored in memory and attached to subsequent API calls via Axios interceptors.
+5. On page reload, the `AuthProvider` calls `/api/auth/refresh`; the cookie is sent, backend returns new tokens, and the session persists.
+6. Logout clears the cookie.
+
+## Key Features
+
+- Google OAuth 2.0 with `@react-oauth/google`
+- Guest accounts (auto‑expire after 1 hour)
+- DnD task boards (using `@dnd-kit`)
+- Comments with reactions, pinning, and mentions
+- File uploads (Cloudinary) and link attachments
+- Dark/light theme + color mode preferences
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Install dependencies
+npm install
+
+# Copy environment variables
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required variables:
+- `NEXT_PUBLIC_API_URL` – Backend URL (e.g., `https://your-backend.onrender.com`)
+- `NEXT_PUBLIC_GOOGLE_CLIENT_ID` – Google OAuth client ID
+- (Optional) `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` for avatar uploads
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Run development:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The frontend is deployed on Vercel; the backend runs on Render. The API route acts as a proxy, forwarding requests and managing the refresh token cookie.
