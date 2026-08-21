@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tasker-backend-vmmt.onrender.com';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:3001/';
 
-/**
- * Shared logic to forward any request method to the backend
- */
-async function forwardRequest(
-  req: NextRequest,
-  { params }: { params: Promise<{ slug: string[] }> }
-) {
+async function forwardRequest(req: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;
   const path = slug.join('/');
   const url = `${BACKEND_URL}/auth/${path}`;
 
-  // Get refresh token from cookie (if any)
+  // Read the refresh token from the cookie (if present)
   const refreshToken = req.cookies.get('refresh_token')?.value;
-
-  // Get authorization header (for access tokens)
   const authHeader = req.headers.get('authorization');
 
   const headers: Record<string, string> = {
@@ -29,10 +21,14 @@ async function forwardRequest(
     headers.Authorization = authHeader;
   }
 
-  // Read body if present (for POST, PUT, PATCH)
+  // Read body for non‑GET requests
   let body: any = undefined;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
-    body = await req.json().catch(() => undefined);
+    try {
+      body = await req.json();
+    } catch {
+      // ignore
+    }
   }
 
   const backendResponse = await fetch(url, {
@@ -41,11 +37,16 @@ async function forwardRequest(
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await backendResponse.json();
+  let data;
+  try {
+    data = await backendResponse.json();
+  } catch {
+    data = {};
+  }
 
   const response = NextResponse.json(data, { status: backendResponse.status });
 
-  // If backend sends a new refresh token, store it in a cookie on our domain
+  // If the backend returns a new refresh token, store it in a cookie on our domain
   if (data.refreshToken) {
     response.cookies.set('refresh_token', data.refreshToken, {
       httpOnly: true,
@@ -56,7 +57,7 @@ async function forwardRequest(
     });
   }
 
-  // Clear cookie on logout
+  // Clear the cookie on logout
   if (path === 'logout' && req.method === 'POST') {
     response.cookies.delete('refresh_token');
   }
@@ -64,31 +65,8 @@ async function forwardRequest(
   return response;
 }
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ slug: string[] }> }
-) {
-  return forwardRequest(req, { params });
-}
-
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ slug: string[] }> }
-) {
-  return forwardRequest(req, { params });
-}
-
-// Optionally add PUT, PATCH, DELETE if needed
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ slug: string[] }> }
-) {
-  return forwardRequest(req, { params });
-}
-
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ slug: string[] }> }
-) {
-  return forwardRequest(req, { params });
-}
+export const GET = forwardRequest;
+export const POST = forwardRequest;
+export const PUT = forwardRequest;
+export const DELETE = forwardRequest;
+export const PATCH = forwardRequest;

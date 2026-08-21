@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: '/api', // <-- now relative, goes through our proxy
+  baseURL: '/api',
   withCredentials: true,
 });
 
