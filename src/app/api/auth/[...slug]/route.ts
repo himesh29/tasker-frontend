@@ -7,7 +7,6 @@ async function forwardRequest(req: NextRequest, { params }: { params: Promise<{ 
   const path = slug.join('/');
   const url = `${BACKEND_URL}/auth/${path}`;
 
-  // Read the refresh token from the cookie (if present)
   const refreshToken = req.cookies.get('refresh_token')?.value;
   const authHeader = req.headers.get('authorization');
 
@@ -21,7 +20,6 @@ async function forwardRequest(req: NextRequest, { params }: { params: Promise<{ 
     headers.Authorization = authHeader;
   }
 
-  // Read body for non‑GET requests
   let body: any = undefined;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     try {
@@ -46,18 +44,16 @@ async function forwardRequest(req: NextRequest, { params }: { params: Promise<{ 
 
   const response = NextResponse.json(data, { status: backendResponse.status });
 
-  // If the backend returns a new refresh token, store it in a cookie on our domain
   if (data.refreshToken) {
     response.cookies.set('refresh_token', data.refreshToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',  
       sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60,
     });
   }
 
-  // Clear the cookie on logout
   if (path === 'logout' && req.method === 'POST') {
     response.cookies.delete('refresh_token');
   }
