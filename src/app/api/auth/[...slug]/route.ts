@@ -1,16 +1,16 @@
-// app/api/auth/[...slug]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:3000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tasker-backend-vmmt.onrender.com';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { slug: string[] } }
+  { params }: { params: Promise<{ slug: string[] }> }
 ) {
-  const path = params.slug.join('/'); // e.g., 'google', 'guest', 'refresh', 'logout'
+  const { slug } = await params;
+  const path = slug.join('/'); // e.g., 'google', 'guest', 'refresh', 'logout'
   const url = `${BACKEND_URL}/auth/${path}`;
 
-  // Read refresh token from the cookie (same domain)
+  // Get refresh token from cookie (sent by browser to this proxy)
   const refreshToken = req.cookies.get('refresh_token')?.value;
 
   const headers: Record<string, string> = {
@@ -32,7 +32,7 @@ export async function POST(
 
   const response = NextResponse.json(data, { status: backendResponse.status });
 
-  // If the backend sends a new refresh token, store it in a cookie on our domain
+  // If backend sends a new refresh token, store it on our domain
   if (data.refreshToken) {
     response.cookies.set('refresh_token', data.refreshToken, {
       httpOnly: true,
