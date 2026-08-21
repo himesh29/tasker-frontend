@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeColorProvider } from "@/providers/theme-color-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryClientProvider } from "@/lib/query-client";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,7 +30,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const googleClientId =
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   if (!googleClientId) {
     throw new Error(

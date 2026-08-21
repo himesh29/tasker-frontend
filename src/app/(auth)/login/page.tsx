@@ -1,22 +1,205 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/providers/auth-provider";
+
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        id?: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: {
+              credential?: string;
+            }) => void;
+            auto_select?: boolean;
+            cancel_on_tap_outside?: boolean;
+            use_fedcm_for_prompt?: boolean;
+          }) => void;
+
+          prompt: (
+            momentListener?: (notification: {
+              isNotDisplayed?: () => boolean;
+              isSkippedMoment?: () => boolean;
+              isDismissedMoment?: () => boolean;
+              getNotDisplayedReason?: () => string;
+              getSkippedReason?: () => string;
+              getDismissedReason?: () => string;
+            }) => void
+          ) => void;
+        };
+      };
+    };
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const { loginGoogle, loginGuest } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [googleReady, setGoogleReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const googleButtonRef = useRef<HTMLDivElement>(null);
+  const googleInitialized = useRef(false);
 
+  /**
+   * Complete login after Google gives us an ID token.
+   */
+  const completeGoogleLogin = useCallback(
+    async (idToken: string) => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        await loginGoogle(idToken);
+        router.push("/tasks");
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Google login failed."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [loginGoogle, router]
+  );
+
+  /**
+   * Initialize Google Identity Services exactly once.
+   */
+  const initializeGoogle = useCallback(() => {
+    const clientId =
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+    if (!clientId) {
+      setError(
+        "Google login isn't configured. NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing."
+      );
+      return;
+    }
+
+    if (googleInitialized.current) {
+      return;
+    }
+
+    if (!window.google?.accounts?.id) {
+      return;
+    }
+
+    googleInitialized.current = true;
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+
+      /**
+       * Google returns the ID token here.
+       */
+      callback: (response) => {
+        if (!response.credential) {
+          setIsLoading(false);
+          setError(
+            "Google did not return a credential. Please try again."
+          );
+          return;
+        }
+
+        void completeGoogleLogin(response.credential);
+      },
+
+      auto_select: false,
+
+      cancel_on_tap_outside: false,
+
+      /**
+       * Allow current Google/FedCM behavior.
+       */
+      use_fedcm_for_prompt: true,
+    });
+
+    setGoogleReady(true);
+  }, [completeGoogleLogin]);
+
+  /**
+   * Load Google Identity Services once.
+   */
+  useEffect(() => {
+    const clientId =
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+    if (!clientId) {
+      setError(
+        "Google login isn't configured. NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing."
+      );
+      return;
+    }
+
+    /**
+     * GIS is already available.
+     */
+    if (window.google?.accounts?.id) {
+      initializeGoogle();
+      return;
+    }
+
+    /**
+     * Check if another component already added the script.
+     */
+    const existingScript = document.querySelector(
+      'script[src="https://accounts.google.com/gsi/client"]'
+    ) as HTMLScriptElement | null;
+
+    if (existingScript) {
+      const handleLoad = () => {
+        initializeGoogle();
+      };
+
+      existingScript.addEventListener("load", handleLoad);
+
+      return () => {
+        existingScript.removeEventListener(
+          "load",
+          handleLoad
+        );
+      };
+    }
+
+    /**
+     * Add Google GIS script.
+     */
+    const script = document.createElement("script");
+
+    script.src =
+      "https://accounts.google.com/gsi/client";
+
+    script.async = true;
+    script.defer = true;
+
+    script.onload = () => {
+      initializeGoogle();
+    };
+
+    script.onerror = () => {
+      setError(
+        "Google Sign-In could not be loaded. Please check your internet connection and try again."
+      );
+    };
+
+    document.head.appendChild(script);
+  }, [initializeGoogle]);
+
+  /**
+   * Guest login.
+   */
   async function handleGuest() {
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -26,60 +209,69 @@ export default function LoginPage() {
       router.push("/tasks");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Guest login failed"
+        err instanceof Error
+          ? err.message
+          : "Guest login failed."
       );
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function completeGoogleLogin(idToken: string) {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      await loginGoogle(idToken);
-      router.push("/tasks");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Google login failed"
-      );
-    } finally {
-      setIsLoading(false);
+  /**
+   * Custom Google button.
+   *
+   * IMPORTANT:
+   * We do NOT initialize Google here.
+   *
+   * Google was initialized once in useEffect().
+   */
+  function handleGoogle() {
+    if (isLoading) {
+      return;
     }
-  }
-
-  function handleGoogleClick() {
-    if (isLoading) return;
 
     setError(null);
 
-    /*
-     * Find the actual Google-rendered button and click it.
-     *
-     * We are NOT calling:
-     *
-     *   google.accounts.id.initialize()
-     *   google.accounts.id.prompt()
-     *
-     * ourselves.
-     *
-     * GoogleLogin handles that lifecycle.
-     */
-    const googleButton =
-      googleButtonRef.current?.querySelector(
-        'div[role="button"]'
-      ) as HTMLElement | null;
-
-    if (!googleButton) {
+    if (!googleReady) {
       setError(
         "Google Sign-In hasn't loaded yet. Please try again in a moment."
       );
       return;
     }
 
+    if (!window.google?.accounts?.id) {
+      setError(
+        "Google Sign-In is unavailable. Please refresh the page and try again."
+      );
+      return;
+    }
+
     setIsLoading(true);
-    googleButton.click();
+
+    /**
+     * Start Google authentication.
+     *
+     * We intentionally do NOT call initialize() here.
+     */
+    window.google.accounts.id.prompt((notification) => {
+      /**
+       * These are informational states.
+       *
+       * Do not display the old:
+       *
+       * "Google sign-in was dismissed or blocked..."
+       *
+       * message here.
+       */
+      if (
+        notification.isNotDisplayed?.() ||
+        notification.isSkippedMoment?.() ||
+        notification.isDismissedMoment?.()
+      ) {
+        setIsLoading(false);
+      }
+    });
   }
 
   return (
@@ -124,6 +316,7 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-white border border-neutral-200 rounded-2xl p-7 w-full shadow-sm">
+
           <h1 className="text-[18px] font-bold text-center text-neutral-900 mb-1">
             Let&apos;s get back on track
           </h1>
@@ -132,8 +325,12 @@ export default function LoginPage() {
             Enter your email below to login to your account.
           </p>
 
+          {/* Error */}
           {error && (
-            <div className="mb-2 rounded-md bg-red-50 p-2 text-[11px] text-red-600">
+            <div
+              role="alert"
+              className="mb-2 rounded-md bg-red-50 p-2 text-[11px] text-red-600"
+            >
               {error}
             </div>
           )}
@@ -147,13 +344,15 @@ export default function LoginPage() {
               disabled={isLoading}
               className="flex items-center justify-center w-full h-10 bg-neutral-900 text-white rounded-full text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50"
             >
-              {isLoading ? "Loading..." : "Continue as Guest"}
+              {isLoading
+                ? "Loading..."
+                : "Continue as Guest"}
             </button>
 
-            {/* YOUR CUSTOM GOOGLE BUTTON */}
+            {/* Google */}
             <button
               type="button"
-              onClick={handleGoogleClick}
+              onClick={handleGoogle}
               disabled={isLoading}
               className="flex items-center justify-center w-full h-10 bg-white border border-neutral-300 text-neutral-900 rounded-full text-sm font-medium hover:bg-neutral-50 transition-colors relative disabled:opacity-50"
             >
@@ -184,46 +383,10 @@ export default function LoginPage() {
                 />
               </svg>
 
-              {isLoading ? "Loading..." : "Login with Google"}
+              {isLoading
+                ? "Loading..."
+                : "Login with Google"}
             </button>
-
-            {/*
-             * Hidden Google button.
-             *
-             * This is only here to let Google's SDK handle the
-             * authentication. The user never sees this button.
-             */}
-            <div
-              ref={googleButtonRef}
-              className="absolute w-0 h-0 overflow-hidden opacity-0 pointer-events-none"
-              aria-hidden="true"
-            >
-              <GoogleLogin
-                onSuccess={(response) => {
-                  if (!response.credential) {
-                    setError(
-                      "Google did not return a credential. Please try again."
-                    );
-                    setIsLoading(false);
-                    return;
-                  }
-
-                  void completeGoogleLogin(response.credential);
-                }}
-                onError={() => {
-                  setError(
-                    "Google sign-in failed. Please try again."
-                  );
-                  setIsLoading(false);
-                }}
-                useOneTap={false}
-                auto_select={false}
-                theme="outline"
-                size="large"
-                text="signin_with"
-                shape="rectangular"
-              />
-            </div>
           </div>
         </div>
 
@@ -256,6 +419,7 @@ export default function LoginPage() {
             Policy
           </Link>
         </p>
+
       </div>
     </div>
   );
