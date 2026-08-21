@@ -1,16 +1,10 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/providers/auth-provider";
-import { useState } from "react";
-import { useGoogleLogin } from "@react-oauth/google";
-
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,7 +13,11 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+
   async function handleGuest() {
+    if (isLoading) return;
+
     setIsLoading(true);
     setError(null);
 
@@ -27,7 +25,9 @@ export default function LoginPage() {
       await loginGuest();
       router.push("/tasks");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Guest login failed");
+      setError(
+        err instanceof Error ? err.message : "Guest login failed"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -41,50 +41,51 @@ export default function LoginPage() {
       await loginGoogle(idToken);
       router.push("/tasks");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Google login failed");
+      setError(
+        err instanceof Error ? err.message : "Google login failed"
+      );
     } finally {
       setIsLoading(false);
     }
   }
 
-  function handleGoogle() {
+  function handleGoogleClick() {
+    if (isLoading) return;
+
     setError(null);
 
-    if (typeof window === "undefined" || !window.google?.accounts?.id) {
-      setError("Google Sign-In hasn't loaded yet. Please try again in a moment.");
+    /*
+     * Find the actual Google-rendered button and click it.
+     *
+     * We are NOT calling:
+     *
+     *   google.accounts.id.initialize()
+     *   google.accounts.id.prompt()
+     *
+     * ourselves.
+     *
+     * GoogleLogin handles that lifecycle.
+     */
+    const googleButton =
+      googleButtonRef.current?.querySelector(
+        'div[role="button"]'
+      ) as HTMLElement | null;
+
+    if (!googleButton) {
+      setError(
+        "Google Sign-In hasn't loaded yet. Please try again in a moment."
+      );
       return;
     }
 
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (!clientId || clientId === "mock-client-id") {
-      setError("Google login isn't configured (missing NEXT_PUBLIC_GOOGLE_CLIENT_ID).");
-      return;
-    }
-
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: (response: { credential?: string }) => {
-        if (!response.credential) {
-          setError("Google did not return a credential. Please try again.");
-          return;
-        }
-        completeGoogleLogin(response.credential);
-      },
-    });
-
-    window.google.accounts.id.prompt((notification: any) => {
-      if (
-        notification.isNotDisplayed?.() ||
-        notification.isSkippedMoment?.()
-      ) {
-        setError("Google sign-in was dismissed or blocked. Please try again.");
-      }
-    });
+    setIsLoading(true);
+    googleButton.click();
   }
 
   return (
     <div className="min-h-screen w-screen bg-neutral-50 flex flex-col items-center justify-center p-4">
       <div className="flex flex-col items-center w-full max-w-[420px]">
+
         {/* Logo */}
         <div className="flex items-center gap-2 mb-6">
           <svg
@@ -94,7 +95,12 @@ export default function LoginPage() {
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <rect width="40" height="40" rx="8" fill="#000000" />
+            <rect
+              width="40"
+              height="40"
+              rx="8"
+              fill="#000000"
+            />
 
             <path
               d="M20 10L11 26L20 30L29 26L20 10Z"
@@ -133,6 +139,7 @@ export default function LoginPage() {
           )}
 
           <div className="flex flex-col gap-2">
+
             {/* Guest */}
             <button
               type="button"
@@ -143,10 +150,10 @@ export default function LoginPage() {
               {isLoading ? "Loading..." : "Continue as Guest"}
             </button>
 
-            {/* Google */}
+            {/* YOUR CUSTOM GOOGLE BUTTON */}
             <button
               type="button"
-              onClick={handleGoogle}
+              onClick={handleGoogleClick}
               disabled={isLoading}
               className="flex items-center justify-center w-full h-10 bg-white border border-neutral-300 text-neutral-900 rounded-full text-sm font-medium hover:bg-neutral-50 transition-colors relative disabled:opacity-50"
             >
@@ -160,14 +167,17 @@ export default function LoginPage() {
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                   fill="#111"
                 />
+
                 <path
                   d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
                   fill="#111"
                 />
+
                 <path
                   d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
                   fill="#111"
                 />
+
                 <path
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   fill="#111"
@@ -176,6 +186,44 @@ export default function LoginPage() {
 
               {isLoading ? "Loading..." : "Login with Google"}
             </button>
+
+            {/*
+             * Hidden Google button.
+             *
+             * This is only here to let Google's SDK handle the
+             * authentication. The user never sees this button.
+             */}
+            <div
+              ref={googleButtonRef}
+              className="absolute w-0 h-0 overflow-hidden opacity-0 pointer-events-none"
+              aria-hidden="true"
+            >
+              <GoogleLogin
+                onSuccess={(response) => {
+                  if (!response.credential) {
+                    setError(
+                      "Google did not return a credential. Please try again."
+                    );
+                    setIsLoading(false);
+                    return;
+                  }
+
+                  void completeGoogleLogin(response.credential);
+                }}
+                onError={() => {
+                  setError(
+                    "Google sign-in failed. Please try again."
+                  );
+                  setIsLoading(false);
+                }}
+                useOneTap={false}
+                auto_select={false}
+                theme="outline"
+                size="large"
+                text="signin_with"
+                shape="rectangular"
+              />
+            </div>
           </div>
         </div>
 
@@ -183,6 +231,7 @@ export default function LoginPage() {
         <p className="mt-4 text-[11px] text-neutral-400 text-center leading-relaxed">
           By clicking continue, you agree to
           <br />
+
           our{" "}
           <Link
             href="/terms"
@@ -197,7 +246,9 @@ export default function LoginPage() {
           >
             Privacy
           </Link>
+
           <br />
+
           <Link
             href="/privacy"
             className="text-neutral-500 underline hover:text-neutral-700"
